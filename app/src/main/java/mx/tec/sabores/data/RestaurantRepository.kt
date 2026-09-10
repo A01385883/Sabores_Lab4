@@ -22,7 +22,8 @@ class RestaurantRepository(private val api: SaboresApi = Network.api) {
 
     suspend fun getMyReviews(): List<Review> =
         api.getMyReviews().map { it.toDomain() }
-}
 
-suspend fun getAllForList(): List<RestaurantEnLista> =
-    api.getRestaurants().map { RestaurantEnLista(it.toDomain(), it.toSummary()) }
+
+    suspend fun getAllForList(): List<RestaurantEnLista> =
+        api.getRestaurants().map { RestaurantEnLista(it.toDomain(), it.toSummary()) }
+}
