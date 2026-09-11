@@ -63,9 +63,20 @@ fun NewReviewScreen(
                 minLines = 4,
                 isError = uiState.commentError != null,
                 supportingText = {
-                    val error = uiState.commentError
-                    if (error != null) Text(error.message())
-                    else Text("Te quedan ${uiState.charactersLeft} caracteres")
+                    Column {
+                        val error = uiState.commentError
+                        if (error != null) Text(error.message())
+                        else Text("Te quedan ${uiState.charactersLeft} caracteres")
+
+                        val errorDelServidor = uiState.errorAlGuardar
+                        if (errorDelServidor != null) {
+                            Text(
+                                text = errorDelServidor,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -74,7 +85,7 @@ fun NewReviewScreen(
                 onClick = onSave,
                 enabled = uiState.canSave,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Publicar reseña") }
+            ) { Text(if (uiState.guardando) "Publicando…" else "Publicar reseña") }
         }
     }
 }
