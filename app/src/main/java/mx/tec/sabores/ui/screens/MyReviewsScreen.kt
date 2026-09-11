@@ -18,11 +18,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import mx.tec.sabores.domain.Review
+import mx.tec.sabores.ui.components.StarPicker
 import mx.tec.sabores.ui.components.StarsRow
 import mx.tec.sabores.ui.state.MyReviewItem
 
 @Composable
-fun MyReviewsScreen(items: List<MyReviewItem>, modifier: Modifier = Modifier) {
+fun MyReviewsScreen(
+    items: List<MyReviewItem>,
+    onEditarEstrellas: (Review, Int) -> Unit,
+    onBorrar: (Review) -> Unit,
+    modifier: Modifier = Modifier
+    ) {
     if (items.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Todavía no has reseñado ningún lugar.",
@@ -39,6 +46,14 @@ fun MyReviewsScreen(items: List<MyReviewItem>, modifier: Modifier = Modifier) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text(item.restaurantName, style = MaterialTheme.typography.titleMedium)
+                //The Original
+
+                    //Starwalker
+                    StarPicker(
+
+                    )
+
+
                     StarsRow(item.review.stars)
                     Spacer(Modifier.height(6.dp))
                     Text(item.review.comment, style = MaterialTheme.typography.bodyMedium)
