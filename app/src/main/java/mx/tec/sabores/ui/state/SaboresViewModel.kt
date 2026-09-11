@@ -1,5 +1,8 @@
 package mx.tec.sabores.ui.state
 
+import retrofit2.HttpException
+import android.os.Build
+import androidx.annotation.RequiresExtension
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +14,7 @@ import mx.tec.sabores.domain.RatingSummary
 import mx.tec.sabores.domain.Restaurant
 import mx.tec.sabores.domain.RestaurantEnLista
 import mx.tec.sabores.domain.Review
+import java.io.IOException
 
 data class MyReviewItem(val restaurantName: String, val review: Review)
 
@@ -22,15 +26,15 @@ data class Detalle(
     val summary: RatingSummary = RatingSummary.from(reviews)
 }
 
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 class SaboresViewModel(
     private val repository: RestaurantRepository = RestaurantRepository()
 ) : ViewModel() {
 
-    // Ya no se lee una vez al construir: ahora llega de la red, y tarda.
-    var restaurantes by mutableStateOf<List<RestaurantEnLista>>(emptyList())
+    var restaurantes by mutableStateOf<UiState<List<RestaurantEnLista>>>(UiState.Cargando)
         private set
 
-    var detalle by mutableStateOf<Detalle?>(null)
+    var detalle by mutableStateOf<UiState<Detalle>>(UiState.Cargando)
         private set
 
     var mias by mutableStateOf<List<MyReviewItem>>(emptyList())
@@ -40,13 +44,27 @@ class SaboresViewModel(
 
     fun cargarRestaurantes() {
         viewModelScope.launch {
-            restaurantes = repository.getAllForList()
+            restaurantes = UiState.Cargando
+            restaurantes = try {
+                UiState.Exito(repository.getAllForList())
+            } catch (e: IOException) {
+                UiState.Error("No hay conexión. Revisa tu internet.")
+            } catch (e: HttpException) {
+                UiState.Error("El servidor respondió ${e.code()}.")
+            }
         }
     }
 
     fun cargarDetalle(id: Int) {
         viewModelScope.launch {
-            detalle = Detalle(repository.getById(id), repository.getReviews(id))
+            detalle = UiState.Cargando
+            detalle = try {
+                UiState.Exito(Detalle(repository.getById(id), repository.getReviews(id)))
+            } catch (e: IOException) {
+                UiState.Error("No hay conexión. Revisa tu internet.")
+            } catch (e: HttpException) {
+                UiState.Error("El servidor respondió ${e.code()}.")
+            }
         }
     }
 }
