@@ -1,0 +1,93 @@
+Hola profe si ve esto ando en el hackaton ayuda
+
+	Ejercicio A0
+
+
+Endpoint	¿Qué pantalla lo usa?
+1	GET /restaurants	1ra pantalla (Listado de Restaurantes)
+2	GET /restaurants/3	2da pantalla (Info del restaurante)
+3	GET /reviews?restaurantId=3	 2da pantalla(Info restaurante)
+4	POST /reviews	Pantalla de escribir Reseña
+5	GET /me/reviews	Obtener mis propias reseñas Abajo
+6	DELETE /reviews/12	Pantalla de un restaurante
+
+Ejercicio A2
+
+Creo que se usan ambos debido a las modificaciones posibles por el usuario (las cuales son borrar o añadir una review a un restaurante), lo cual permitiría que el promedio cambie sin llamar necesariamente a nuestra API
+
+Ejercicio B1
+Me imagino que un estado es el de “listo”, en donde ya tenemos los datos en donde se buscaban, y el otro que tenemos seria el de carga, en donde esperamos que nos den los datos.
+Con esta lógica puede que se ocupe uno de fallo, ya que no tener datos puede ser diferente a no recibir datos, y lo tendríamos que mostrar en UI 
+
+Ejercicio C2
+
+Cambios hechos: 
+// Estado DERIVADO: se calcula, no se guarda.
+val commentError: ReviewError? =
+null   // if (comment.isEmpty()) null else ReviewValidator.validateComment(comment)
+
+// Con la red de por medio, "puedo guardar" incluye "no estoy guardando ya".
+//Cambio que rompe el codigo
+val canSave: Boolean = /*ReviewValidator.isValid(stars, comment) &&*/ !guardando
+
+En este caso lo que s eobserva es que a pesar de que el botón desde UI no es obscurece, yo como usuario no puedo publicar alguna información al servidor la cual sea menor que lo establecido con anterioridad.
+
+En cuanto error server side salió error 422, lo cual significa que si entiende el .Json que se creó, pero desde su lado un dato lo detecto como erroneo, así que no acepto este mismo.
+
+ 
+Declaración Uso de IA:
+
+Promt / Respuesta:
+Ok, puedes explicarme los problemas con mi archivo, y porque tengo 4 elementos que me salen como sin declarar?
+
+¡Claro! Vamos por partes.
+1. El problema de fondo: UiState<Detalle> no es lo mismo que Detalle
+En tu ViewModel tienes esto:
+var detalle by mutableStateOf<UiState<Detalle>>(UiState.Cargando)
+detalle no es un objeto Detalle que puede ser null — es un UiState que envuelve a un Detalle. UiState es un sealed interface con tres formas posibles:
+sealed interface UiState<out T> {
+    data object Cargando : UiState<Nothing>
+    data class Exito<T>(val datos: T) : UiState<T>
+    data class Error(val mensaje: String) : UiState<Nothing>
+}
+Así que cuando escribías viewModel.detalle.restaurant, el compilador ve un UiState<Detalle> y busca la propiedad restaurant en el UiState, no en el Detalle de adentro — y como UiState no tiene esa propiedad, marca "Unresolved reference".
+2. Por qué el ?: no ayudaba
+Tenías viewModel.detalle ?: return@composable. El operador ?: (elvis) solo hace algo si el valor de la izquierda puede ser null. Pero detalle es de tipo UiState<Detalle>, que nunca es nulo (siempre es Cargando, Exito o Error, nunca null). Entonces ese ?: no filtraba nada — el problema seguía sin resolverse.
+3. La solución: desempacar con when, igual que ya hacías en HOME
+Fíjate que arriba, en la ruta HOME, tú mismo ya resolvías este mismo patrón correctamente:
+when (val estado = viewModel.restaurantes) {
+    is UiState.Cargando -> CargandoView()
+    is UiState.Error -> ErrorView(...)
+    is UiState.Exito -> RestaurantListScreen(restaurants = estado.datos, ...)
+}
+Apliqué exactamente esa misma idea a detalle:
+when (val estado = viewModel.detalle) {
+    is UiState.Cargando -> CargandoView()
+    is UiState.Error -> ErrorView(
+        mensaje = estado.mensaje,
+        onReintentar = { viewModel.cargarDetalle(id) }
+    )
+    is UiState.Exito -> {
+        val detalle = estado.datos          // <- aquí sí es un Detalle real
+        RestaurantDetailScreen(
+            restaurant = detalle.restaurant,
+            summary = detalle.summary,
+            reviews = detalle.reviews,
+            ...
+        )
+    }
+}
+Cuando Kotlin entra al is UiState.Exito, hace smart cast: sabe que estado ya es un UiState.Exito<Detalle>, así que estado.datos es directamente un Detalle — ahí sí existen .restaurant, .summary y .reviews.
+4. El segundo lugar (ruta NEW_REVIEW)
+Ahí solo necesitabas el restaurant, no todo el when, así que usé un cast seguro en una sola línea:
+val restaurant = (viewModel.detalle as? UiState.Exito)?.datos?.restaurant
+    ?: return@composable
+Esto dice: "si detalle es de tipo UiState.Exito, tómalo; si no lo es (está Cargando o Error), dame null". El as? es un cast que no truena si falla, solo devuelve null. Luego ?.datos?.restaurant navega con seguridad, y el ?: return@composable sale de la pantalla si todavía no hay restaurante cargado.
+5. El import duplicado
+Solo tenías import androidx.compose.runtime.LaunchedEffect escrito dos veces (líneas 12 y 31). No era la causa del error, pero Kotlin lo marca como conflicto de import, así que lo quité de paso.
+
+ 
+Enlace Video
+
+https://youtube.com/shorts/bS6NfpfkRP8?feature=share
+
