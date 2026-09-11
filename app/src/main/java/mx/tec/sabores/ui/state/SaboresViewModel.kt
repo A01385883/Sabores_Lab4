@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import mx.tec.sabores.data.RestaurantRepository
 import mx.tec.sabores.domain.RatingSummary
@@ -38,7 +39,10 @@ class SaboresViewModel(
     var detalle by mutableStateOf<UiState<Detalle>>(UiState.Cargando)
         private set
 
-    var mias by mutableStateOf<List<MyReviewItem>>(emptyList())
+    var aviso by mutableStateOf<String?>(null)
+        private set
+
+    var mias by mutableStateOf<UiState<List<MyReviewItem>>>(UiState.Cargando)
         private set
 
     init { cargarRestaurantes() }
@@ -57,6 +61,56 @@ class SaboresViewModel(
         }
     }
 
+    fun cargarReviews() {
+        viewModelScope.launch {
+            mias = UiState.Cargando
+            mias = pedir {
+                val nombres = repository.getAllForList().associate {
+                    it.restaurant.id to it.restaurant.name
+                }
+                repository.getMyReviews().map { review ->
+                    MyReviewItem(
+                        restaurantName = nombres[review.restaurantId]
+                            ?: "Restaurante ${review.restaurantId}",
+                        review = review
+                    )
+                }
+            }
+        }
+    }
+
+
+    //Funciones de modificacion de reviews
+    fun editarEstrellas(review: Review, stars: Int) {
+        viewModelScope.launch {
+            try {
+                repository.editReview(review.id, stars = stars)
+                cargarReviews()
+            } catch (e: IOException) {
+                aviso = "No hay conexion. No se pudo editar."
+            } catch (e: HttpException) {
+                aviso = mensajeDe(e)
+            }
+        }
+    }
+
+    fun borrar(review: Review) {
+        viewModelScope.launch {
+            try {
+                val borrada = repository.deleteReview(review.id)
+                if (!borrada) aviso = "Esa resena es de alguien mas."
+                cargarReviews()
+            } catch (e: IOException) {
+                aviso = "No hay conexion. No se pudo borrar."
+            } catch (e: HttpException) {
+                aviso = mensajeDe(e)
+            }
+        }
+    }
+
+    fun limpiarAviso() {
+        aviso = null
+    }
     private suspend fun <T> pedir(block: suspend () -> T): UiState<T> = try {
         UiState.Exito(block())
     } catch (e: IOException) {

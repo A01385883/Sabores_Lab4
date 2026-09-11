@@ -80,9 +80,25 @@ fun SaboresApp() {
                     )
                 }
             }
-
+            //OK no andaba loco yay
             composable(Route.MY_REVIEWS) {
-                MyReviewsScreen(items = viewModel.mias)
+                LaunchedEffect(Unit) { viewModel.cargarReviews() }
+
+                when (val estado = viewModel.mias)  {
+                    is UiState.Cargando -> CargandoView()
+                    is UiState.Error -> ErrorView(
+                        mensaje = estado.mensaje,
+                        onReintentar = { viewModel.cargarReviews() }
+                    )
+                    is UiState.Exito -> MyReviewsScreen(
+                        items = estado.datos,
+                        onEditarEstrellas = { review, estrellas ->
+                            viewModel.editarEstrellas(review, estrellas)
+                        },
+                        onBorrar = { review -> viewModel.borrar(review) }
+                    )
+                }
+
             }
 
             composable(

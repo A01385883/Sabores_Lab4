@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,17 +48,21 @@ fun MyReviewsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text(item.restaurantName, style = MaterialTheme.typography.titleMedium)
-                //The Original
 
-                    //Starwalker
                     StarPicker(
-
+                        value = item.review.stars,
+                        onValueChange = { estrellas -> onEditarEstrellas(item.review, estrellas) }
                     )
 
-
-                    StarsRow(item.review.stars)
                     Spacer(Modifier.height(6.dp))
                     Text(item.review.comment, style = MaterialTheme.typography.bodyMedium)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ){
+                        TextButton(onClick = { onBorrar(item.review) }) { Text("Borrar") }
+                    }
                 }
             }
         }
