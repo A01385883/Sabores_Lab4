@@ -23,6 +23,7 @@ data class Detalle(
     val restaurant: Restaurant,
     val reviews: List<Review>
 ) {
+
     val summary: RatingSummary = RatingSummary.from(reviews)
 }
 
@@ -45,26 +46,22 @@ class SaboresViewModel(
     fun cargarRestaurantes() {
         viewModelScope.launch {
             restaurantes = UiState.Cargando
-            restaurantes = try {
-                UiState.Exito(repository.getAllForList())
-            } catch (e: IOException) {
-                UiState.Error("No hay conexión. Revisa tu internet.")
-            } catch (e: HttpException) {
-                UiState.Error("El servidor respondió ${e.code()}.")
-            }
+            restaurantes = pedir { repository.getAllForList() }
         }
     }
 
     fun cargarDetalle(id: Int) {
         viewModelScope.launch {
             detalle = UiState.Cargando
-            detalle = try {
-                UiState.Exito(Detalle(repository.getById(id), repository.getReviews(id)))
-            } catch (e: IOException) {
-                UiState.Error("No hay conexión. Revisa tu internet.")
-            } catch (e: HttpException) {
-                UiState.Error("El servidor respondió ${e.code()}.")
-            }
+            detalle = pedir { Detalle(repository.getById(id), repository.getReviews(id)) }
         }
+    }
+
+    private suspend fun <T> pedir(block: suspend () -> T): UiState<T> = try {
+        UiState.Exito(block())
+    } catch (e: IOException) {
+        UiState.Error("No hay conexión. Revisa tu internet.")
+    } catch (e: HttpException) {
+        UiState.Error(mensajeDe(e))
     }
 }
