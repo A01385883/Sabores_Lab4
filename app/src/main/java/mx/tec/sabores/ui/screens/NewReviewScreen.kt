@@ -17,6 +17,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import mx.tec.sabores.domain.Restaurant
@@ -24,6 +27,7 @@ import mx.tec.sabores.domain.ReviewError
 import mx.tec.sabores.domain.ReviewValidator
 import mx.tec.sabores.ui.components.StarPicker
 import mx.tec.sabores.ui.state.NewReviewUiState
+import androidx.compose.runtime.setValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +40,10 @@ fun NewReviewScreen(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    //La 1ra solucion no sirvio, siguiente idea
+    // Bloqueo inmediato a nivel de UI, independiente de la recomposición del ViewModel.
+    var yaEnviado by remember { mutableStateOf(false) }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -82,8 +90,12 @@ fun NewReviewScreen(
             )
 
             Button(
-                onClick = onSave,
-                enabled = uiState.canSave,
+                onClick = {
+                    //Blockea la parte UI de permitir 2 Inputs
+                    yaEnviado = true
+                    onSave()
+                },
+                enabled = uiState.canSave && !yaEnviado,
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (uiState.guardando) "Publicando…" else "Publicar reseña") }
         }
